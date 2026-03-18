@@ -1,26 +1,24 @@
-# Arduino Solar Tracker
+# Active Scan Solar Tracker & Temp Monitor
 
-This is an embedded hardware project that automatically directs a solar panel towards the brightest light source in its environment. The system maximizes energy absorption by continuously adjusting its angle based on real-time light intensity readings.
+An embedded hardware project I built using an Arduino UNO to maximize solar panel efficiency. Instead of standard comparative tracking, this system maps the surrounding light intensity using a sweep algorithm to find the absolute brightest spot, while also monitoring ambient temperature.
 
 ## Hardware Components
 * Arduino UNO (ATmega328P)
-* Servo Motors (for panel rotation)
-* LDRs (Light Dependent Resistors / Photoresistors)
-* 10k Ohm Resistors
-* Breadboard and Jumper Wires
+* 2x Servo Motors (Pan & Tilt rotation)
+* LDR (Light Dependent Resistor / Photodiode)
+* Dallas DS18B20 Temperature Sensor
+* 1602 LCD Display with I2C module
 
-## Hardware Architecture
-The project uses a closed-loop control system. The LDRs act as light sensors and are connected to the analog input pins of the Arduino via voltage divider circuits. The Arduino continuously compares the analog voltage readings from opposite sensors.
+## Software Implementation & Sweep Algorithm
+The code is written in C++ using Object-Oriented principles. I created custom classes (`Photodiode` and `Servomotor`) to encapsulate the hardware logic. 
 
-If one sensor receives more light than the other, the microcontroller calculates the difference and sends a PWM (Pulse Width Modulation) signal to the servo motors. The servos adjust the panel's physical position until the light hitting all sensors is balanced.
+To find the light source, I implemented a "Sweep & Scan" algorithm:
+1. The servos scan the area in 10-degree increments across both axes.
+2. At each step, the system reads the light value, storing the highest value and its corresponding X/Y coordinates.
+3. Once the scan is complete, the servos automatically drive the panel to the exact coordinates of the maximum light intensity.
+4. The system rests, reads the ambient temperature via the Dallas sensor, displays the stats on the LCD, and repeats the cycle.
 
-## Software Implementation
-The code is written in C++ using the Arduino IDE and relies on the built-in `Servo.h` library for motor control. 
-The logic reads the analog values, calculates the error margin, and applies a basic proportional control loop to move the servos. A small deadband (tolerance threshold) is included in the algorithm to prevent the servos from constantly jittering when the difference in light intensity is negligible.
+## Hardware Challenges (The "3 Broken LDRs" Issue)
+Initially, I planned to use a 4-sensor closed-loop control system. However, during testing, I discovered a hardware issue where 3 out of my 4 photodiodes were outputting faulty, maxed-out analog readings (1000-1023) constantly, regardless of actual light. 
 
-## How to run
-1. Assemble the circuit according to the provided schematic diagram.
-2. Connect the Arduino UNO to your computer.
-3. Open the `.ino` file in the Arduino IDE.
-4. Compile and upload the code to the microcontroller.
-5. Use a flashlight near the LDRs to test the tracking response and verify motor direction.
+Instead of abandoning the project, I adapted the software architecture. I mapped the entire tracking logic to rely solely on the one working sensor (Photodiode ID 3 on pin A2) by changing the tracking strategy from "sensor comparison" to "active area scanning".
